@@ -58,6 +58,12 @@ class RawDataExplorer(object):
                 patient_ids[r['USUBJID']] = patient_ids.get(r['USUBJID'], 0)+r['counts']
         df = pd.DataFrame.from_dict(patient_ids, orient='index')
         return df[0].mean()
+    
+    def get_tables_with_min_n_rows(self, n_min_rows):
+        return {f:df for f,df in self._data.items() if df is not None and len(df) >= n_min_rows }
+    
+    def get_n_rows_all_tables(self):
+        return {f:len(df) for f,df in self._data.items() if df is not None}
     #def count_rows_per_patient(self):
         
         
