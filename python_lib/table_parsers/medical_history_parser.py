@@ -9,11 +9,12 @@ from table_parsers.base_table_parser import BaseTableParser
 from functools import partial
 
 class MedicalHistoryParser(BaseTableParser):
-    
+    '''Class for parsing medical history table
+    '''
     def __init__(self, primary_key='USUBJID'):
     #    super().__init__(primary_key=primary_key)
-        super().__init__()
-        self._primary_key = primary_key
+        super().__init__(primary_key=primary_key)
+        #self._primary_key = primary_key
     
     def aggregate_counts(self, df, diagnosis_col):
         df = pd.get_dummies(df, columns=[diagnosis_col]) \
@@ -45,8 +46,7 @@ class MedicalHistoryParser(BaseTableParser):
         return pd.merge(df_first_date, df_last_date, on=self._primary_key)
     
     
-    def process_table(self, df, diagnosis_col='MHDECOD', date_col='MHSTDTC', pre_process=False):
-        if pre_process: df = self.pre_process(df)
+    def _process_table(self, df, diagnosis_col='MHDECOD', date_col='MHSTDTC'):
         df_counts = self.aggregate_counts(df, diagnosis_col)
         df_dates = self.aggregate_dates(df, diagnosis_col, date_col)
         return pd.merge(df_counts, df_dates, on=self._primary_key)
