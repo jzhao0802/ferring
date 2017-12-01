@@ -24,7 +24,7 @@ class BaseTableParser(object):
         return df_copy
     
     def convert_col_to_date(self, df, date_col):
-        df[date_col] = pd.to_datetime(df[date_col])
+        df[date_col] = pd.to_datetime(df[date_col], format='%Y')
     
     def pre_process(self, df, date_col=None):
         df = self.decode_byte_str_cols(df)
