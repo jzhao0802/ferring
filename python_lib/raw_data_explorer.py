@@ -17,12 +17,18 @@ class RawDataExplorer(object):
     def set_base_dir(self, base_dir):
         self._base_dir = base_dir
         
+    def read_file(self, filename):
+        try:
+            return pd.read_sas(filename)
+        except:
+            return None
+
     def load_data(self):
-        self._data = {filename:pd.read_sas(os.path.join(self._base_dir, filename)) for
+        self._data = {filename:self.read_file(os.path.join(self._base_dir, filename)) for
                       filename in os.listdir(self._base_dir)}
         
-    def get_data(self, filename=None):
-        if filename: return self._data[filename]
+    def get_data(self, filename=None, default=None):
+        if filename: return self._data.get(filename, default)
         return self._data
     
     def get_none_dfs(self):

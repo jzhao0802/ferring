@@ -11,9 +11,9 @@ from functools import partial
 class MedicalHistoryParser(BaseTableParser):
     '''Class for parsing medical history table
     '''
-    def __init__(self, primary_key='USUBJID'):
+    def __init__(self, study_code, primary_key='USUBJID'):
     #    super().__init__(primary_key=primary_key)
-        super().__init__(primary_key=primary_key)
+        super().__init__(study_code, primary_key=primary_key)
         #self._primary_key = primary_key
     
     def aggregate_counts(self, df, diagnosis_col):
@@ -22,7 +22,7 @@ class MedicalHistoryParser(BaseTableParser):
                     .groupby(self._primary_key) \
                     .sum() 
                     
-        df.columns = ['%s_COUNT'%(col.upper().replace(' ', '_')) for col in df.columns]
+        df.columns = ['%s_COUNT'%(col) for col in df.columns]
         return df.reset_index()
                     
     def aggregate_dates(self, df, diagnosis_col, date_col):
@@ -46,9 +46,14 @@ class MedicalHistoryParser(BaseTableParser):
         return pd.merge(df_first_date, df_last_date, on=self._primary_key)
     
     
-    def _process_table(self, df, diagnosis_col='MHDECOD', date_col='MHSTDTC'):
-        df_counts = self.aggregate_counts(df, diagnosis_col)
-        df_dates = self.aggregate_dates(df, diagnosis_col, date_col)
+    def _process_table(self, raw_df, processed_df, diagnosis_col='MHTERM', date_col='MHSTDTC'):
+        #Use MHTERM in future??
+        processed_df[diagnosis_col] = processed_df[diagnosis_col].str.upper().str.replace(' ', '_')
+        print (processed_df[diagnosis_col] )
+        df_counts = self.aggregate_counts(processed_df, diagnosis_col)
+        #For now, don't get date for 004...
+        if self._study_code == '004': return df_counts
+        df_dates = self.aggregate_dates(processed_df, diagnosis_col, date_col)
         return pd.merge(df_counts, df_dates, on=self._primary_key)
                     
 

@@ -12,9 +12,10 @@ class BaseTableParser(ABC):
     ''' Abstract Class that contains common functions useful for parsing all tables.
     '''    
       
-    def __init__(self, primary_key='USUBJID'):
+    def __init__(self, study_code, primary_key='USUBJID'):
         super().__init__()
         self._primary_key = primary_key
+        self._study_code = study_code
     
     
     def decode_byte_str_cols(self, df):
@@ -32,6 +33,7 @@ class BaseTableParser(ABC):
         df[date_col] = pd.to_datetime(df[date_col], format='%Y')
     
     def pre_process(self, df, date_col=None):
+        if df is None: return None
         df = self.decode_byte_str_cols(df)
         if date_col is not None: df = self.convert_col_to_date(df, date_col)
         return df
@@ -42,8 +44,10 @@ class BaseTableParser(ABC):
                             child classes!')
     
     def process_table(self, *args, **kwargs):
-        df = args[0]
-        if kwargs.get('pre_process', False) : df = self.pre_process(df)
-        args = tuple([df] + [arg for arg in args[1:]])
+        if args[0] is None and args[1] is None: return None
+        if kwargs.get('pre_process', False) : 
+            raw_df = self.pre_process(args[0])
+            processed_df = self.pre_process(args[1])
+            args = tuple([raw_df, processed_df] + [arg for arg in args[2:]])
         if 'pre_process' in kwargs: kwargs.pop('pre_process')
         return self._process_table(*args, **kwargs)
