@@ -33,12 +33,12 @@ if __name__ == '__main__':
     
     processed_folder_prefix = 'sdtm_data_Miso_Obs_'
     raw_folder_prefix = 'raw_data_Miso_Obs_'
-    
-    case_study_index = 1
     tables_to_parse = ['mh', 'dd', 'ex', 'bs', 'dm', 'vs']
-    current_case_study_code = case_study_codes[case_study_index]
-    processed_data_dir = '%s%s/%s%s'%(base_dir, current_case_study_code, processed_folder_prefix, current_case_study_code)
-    raw_data_dir = '%s%s/%s%s'%(base_dir, current_case_study_code, raw_folder_prefix, current_case_study_code)
-    output_dir = '%s%s/'%(output_base_dir, current_case_study_code)
-    #os.makedirs(output_dir)
-    main(processed_data_dir, raw_data_dir, output_dir, tables_to_parse, current_case_study_code)
+
+    for case_study_index in range(len(case_study_codes)):
+        current_case_study_code = case_study_codes[case_study_index]
+        processed_data_dir = '%s%s/%s%s'%(base_dir, current_case_study_code, processed_folder_prefix, current_case_study_code)
+        raw_data_dir = '%s%s/%s%s'%(base_dir, current_case_study_code, raw_folder_prefix, current_case_study_code)
+        output_dir = '%s%s/'%(output_base_dir, current_case_study_code)
+        #os.makedirs(output_dir)
+        main(processed_data_dir, raw_data_dir, output_dir, tables_to_parse, current_case_study_code)

@@ -17,14 +17,14 @@ class RawDataExplorer(object):
     def set_base_dir(self, base_dir):
         self._base_dir = base_dir
         
-    def read_file(self, filename):
+    def read_file(self, filename, csv=False):
         try:
-            return pd.read_sas(filename)
+            return pd.read_sas(filename) if not csv else pd.read_csv(filename)
         except:
             return None
 
-    def load_data(self):
-        self._data = {filename:self.read_file(os.path.join(self._base_dir, filename)) for
+    def load_data(self, csv=False):
+        self._data = {filename:self.read_file(os.path.join(self._base_dir, filename), csv) for
                       filename in os.listdir(self._base_dir)}
         
     def get_data(self, filename=None, default=None):

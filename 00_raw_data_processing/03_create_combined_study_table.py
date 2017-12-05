@@ -9,7 +9,7 @@ import os
 
 def main(data_dir, study_code):
     dfs = [pd.read_csv(os.path.join(data_dir, filename)) for filename in os.listdir(data_dir) if 'MERGED_COUNT_DATE.csv' not in filename]
-    merged_df = reduce(lambda x,y: pd.merge(x, y, on='USUBJID'), dfs)
+    merged_df = reduce(lambda x,y: pd.merge(x, y, on='USUBJID', how='outer'), dfs)
     pd.DataFrame.to_csv(merged_df, os.path.join(data_dir, 'MERGED_COUNT_DATE.csv'))
     
 if __name__ == '__main__':
