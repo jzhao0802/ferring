@@ -14,10 +14,10 @@ class DeliveryDataParser(BaseTableParser):
     
     def __init__(self, study_code, primary_key='USUBJID'):
         super().__init__(study_code, primary_key=primary_key)
-        
+        self._delivery_methods = set(['MODE OF DELIVERY', 'Mode Of Delivery'])
         
     def extract_delivery_mode_information(self, df):
-        return df[df['DDTEST'] == 'MODE OF DELIVERY'][[self._primary_key, 'DDSTRESC', 'DDDTC']] \
+        return df[df['DDTEST'].isin(self._delivery_methods)][[self._primary_key, 'DDSTRESC', 'DDDTC']] \
             .rename(columns={'DDSTRESC': 'DD_DELIVERY_METHOD', 'DDDTC': 'DD_DELIVERY_TIME'})
 
     def _process_table(self, raw_df, processed_df, delivery_type_col='DDTEST'):
