@@ -32,7 +32,7 @@ class DemographicParser(BaseTableParser):
         if self._study_code == '303':
             df_vs = self.extract_vital_stats(raw_df)
             print (df_vs.keys(), df_dm.keys())
-            df_dm = pd.merge(df_dm, df_vs, on='SUBJID')
+            df_dm = pd.merge(df_dm, df_vs, on='SUBJID', how='outer')
             del df_dm['SUBJID']
         return df_dm
             

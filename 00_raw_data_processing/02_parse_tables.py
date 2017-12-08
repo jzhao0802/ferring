@@ -29,11 +29,12 @@ if __name__ == '__main__':
     base_dir = 'F:/Projects/Ferring/data/raw_data/DK0-Propess Predictability project/Miso-Obs-'
     output_base_dir = 'F:/Projects/Ferring/data/pre_modelling/Miso-Obs-'
 
+    #case_study_codes = ['303']
     case_study_codes = ['303', '004']
     
     processed_folder_prefix = 'sdtm_data_Miso_Obs_'
     raw_folder_prefix = 'raw_data_Miso_Obs_'
-    tables_to_parse = ['mh', 'dd', 'ex', 'bs', 'dm', 'vs']
+    tables_to_parse = ['mh', 'dd', 'ex', 'bs', 'dm', 'vs', 'oh', 'ox']
 
     for case_study_index in range(len(case_study_codes)):
         current_case_study_code = case_study_codes[case_study_index]
