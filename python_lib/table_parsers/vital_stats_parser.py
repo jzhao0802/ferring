@@ -19,7 +19,7 @@ class VitalStatsParser(BaseTableParser):
         df_vs = df[[self._primary_key, 'VSTESTCD', 'VSSTRESN']] \
         .pivot(index=self._primary_key, columns='VSTESTCD', values='VSSTRESN') \
         .reset_index()
-        
+        df_vs['BMI'] = df_vs['WEIGHT']/((df_vs['HEIGHT']/100)**2)
         return df_vs
               
     def _process_table(self, raw_df, processed_df):
