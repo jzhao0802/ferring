@@ -44,6 +44,7 @@ class BaseTableParser(ABC):
                             child classes!')
     
     def process_table(self, *args, **kwargs):
+        print ('Running ' + str(self))
         if args[0] is None and args[1] is None: return None
         if kwargs.get('pre_process', False) : 
             raw_df = self.pre_process(args[0])

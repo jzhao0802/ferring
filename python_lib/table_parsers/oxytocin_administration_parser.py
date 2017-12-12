@@ -16,8 +16,8 @@ class OxytocinAdministrationParser(BaseTableParser):
 
     def extract_oxytocin_administration_info(self, df):
         df = df[[self._primary_key, 'OADOSTOT']]
-        df['OXYTOCIN_ADMINISTERED'] = int(df['OADOSTOT'].isnull())
-        return df.rename({'OADOSTOT': 'OXYTOCIN_DOSAGE'})
+        df['OXYTOCIN_ADMINISTERED'] = ~df['OADOSTOT'].isnull()
+        return df.rename(columns={'OADOSTOT': 'OXYTOCIN_DOSAGE'})
     
     def _process_table(self, raw_df, processed_df):
         return self.extract_oxytocin_administration_info(processed_df)

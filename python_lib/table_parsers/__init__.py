@@ -8,6 +8,7 @@ from table_parsers.demographic_parser import DemographicParser
 from table_parsers.vital_stats_parser import VitalStatsParser
 from table_parsers.obstetric_history_parser import ObstetricHistoryParser
 from table_parsers.oxytocin_administration_parser import OxytocinAdministrationParser
+from table_parsers.disposition_parser import DispositionParser
 
 table_parser_map = {
         'mh': MedicalHistoryParser,
@@ -17,5 +18,6 @@ table_parser_map = {
         'dm': DemographicParser,
         'vs': VitalStatsParser,
         'oh': ObstetricHistoryParser,
-        'ox': OxytocinAdministrationParser
+        'oa': OxytocinAdministrationParser,
+        'ds': DispositionParser
         }
