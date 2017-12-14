@@ -13,6 +13,7 @@ class DispositionParser(BaseTableParser):
         self._useful_disp_info = ['ACTIVE LABOR', 'DELIVERY', 'L&D DISCHARGE', 'COMPLETED']
         
     def extract_disp_info(self, df):
+        df.loc[df['DSTERM'] == 'COMPLETED', 'DSSTDTC'] = True
         df = df[df['DSTERM'].isin(self._useful_disp_info)][['DSTERM', self._primary_key, 'DSSTDTC']]
         return df.pivot(index=self._primary_key, columns='DSTERM', values='DSSTDTC').reset_index()
         

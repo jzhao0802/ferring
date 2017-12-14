@@ -35,7 +35,7 @@ if __name__ == '__main__':
     
     processed_folder_prefix = 'sdtm_data_Miso_Obs_'
     raw_folder_prefix = 'raw_data_Miso_Obs_'
-    tables_to_parse = ['mh', 'dd', 'ex', 'bs', 'dm', 'vs', 'oh', 'oa']
+    tables_to_parse = ['mh', 'dd', 'ex', 'bs', 'dm', 'vs', 'oh', 'oa', 'ds']
     #tables_to_parse = ['oa']
     for case_study_index in range(len(case_study_codes)):
         current_case_study_code = case_study_codes[case_study_index]

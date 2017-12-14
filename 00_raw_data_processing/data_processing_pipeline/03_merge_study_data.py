@@ -28,6 +28,6 @@ if __name__ == '__main__':
 
     case_study_codes = ['303', '004']
     
-    output_dir = '%s%s/'%(output_base_dir, current_case_study_code)
+    output_dir = '%s%s/'%(output_base_dir, case_study_codes)
     
     main(output_base_dir, case_study_codes)
