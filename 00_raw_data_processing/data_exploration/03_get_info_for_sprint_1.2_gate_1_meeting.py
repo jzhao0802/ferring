@@ -18,7 +18,7 @@ pd.options.display.max_columns = 40
 
 
 #Define function to plot distributions from grouped data
-def plot_multi(df, grouped_df, cols, cust_labels, group_keys, group_col, suffix='', kde=False):
+def plot_multi(df, grouped_df, plot_cols, cust_labels, group_keys, group_col, suffix='', kde=False):
         #Get current sns colour palette
         current_palette = sns.color_palette()
         if kde:
