@@ -160,7 +160,10 @@ print(df['TIME_DELTA_EX_START_ONSET_LABOUR'].isnull().sum())
 df['label'] = (df['TIME_DELTA_EX_START_ONSET_LABOUR'] <=24) & (df['DD_DELIVERY_METHOD'] == 'VAGINAL')
 df['label'] = df['label'].astype(int)
 
-
+#Add column to flag patients that reached active labour <24 hours
+df['ACTIVE_LT_24'] = df['TIME_DELTA_EX_START_ONSET_LABOUR'] <= 24
+#Print table for delivery method <=24 hours and >24 hours
+print(df.groupby(['DD_DELIVERY_METHOD', 'ACTIVE_LT_24']).size().unstack(0))
 # # Produce plots
 #Standard distribution plots
 plot_cols = {'AGE':'Patient Age', 'BS_BASELINE': 'Baseline Modified Bishop Score', 'OXYTOCIN_DOSAGE': 'Pre-delivery Oxytocin Dosage [Units]', 'BMI':'BMI', 'HEIGHT':'Height [m]', 'WEIGHT': 'Weight [kg]', 'GESTATIONAL_AGE_DAYS': 'Gestational Age [days]', 'RACE': 'Ethnicity', 'GESTATIONAL_AGE_WEEKS': 'Gestational Age [weeks]', 'TIME_DELTA_EX_START_OXYTOCIN_ADMIN': 'Time between Propess administration and Oxytocin administration [hours]', 'TIME_DELTA_EX_START_ONSET_LABOUR': 'Time between Propess administration and onset of Active Labour [hours]'}
