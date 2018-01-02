@@ -46,13 +46,14 @@ class MedicalHistoryParser(BaseTableParser):
         return pd.merge(df_first_date, df_last_date, on=self._primary_key)
     
     
-    def _process_table(self, raw_df, processed_df, diagnosis_col='MHTERM', date_col='MHSTDTC'):
+    def _process_table(self, raw_df, processed_df):
         #Use MHTERM in future??
+        diagnosis_col = 'MHTERM'
         processed_df[diagnosis_col] = processed_df[diagnosis_col].str.upper().str.replace(' ', '_')
-        df_counts = self.aggregate_counts(processed_df, diagnosis_col)
+        df_counts = self.aggregate_counts(processed_df, 'MHTERM')
         #For now, don't get date for 004...
         if self._study_code == '004': return df_counts
-        df_dates = self.aggregate_dates(processed_df, diagnosis_col, date_col)
+        df_dates = self.aggregate_dates(processed_df, diagnosis_col, 'MHSTDTC')
         return pd.merge(df_counts, df_dates, on=self._primary_key, how='outer')
                     
 
