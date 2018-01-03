@@ -43,7 +43,7 @@ if __name__ == '__main__':
     processed_folder_prefix = 'sdtm_data_Miso_Obs_'
     raw_folder_prefix = 'raw_data_Miso_Obs_'
     initial_tables_to_parse = {table: [] for table in ['mh', 'dd', 'ex', 'bs', 'dm', 'vs', 'oh', 'oa', 'ds']}
-    secondary_tables_to_parse = {'ae': ['ex']}
+    secondary_tables_to_parse = {'ae': ['ex'], 'cm': ['ex']}
 
     #tables_to_parse = ['oa']
     for case_study_index in range(len(case_study_codes)):

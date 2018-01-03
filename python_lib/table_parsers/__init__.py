@@ -10,6 +10,7 @@ from table_parsers.obstetric_history_parser import ObstetricHistoryParser
 from table_parsers.oxytocin_administration_parser import OxytocinAdministrationParser
 from table_parsers.disposition_parser import DispositionParser
 from table_parsers.adverse_events_parser import AdverseEventsParser
+from table_parsers.concomitant_medication_parser import ConcomitantMedicationParser
 
 table_parser_map = {
         'mh': MedicalHistoryParser,
@@ -21,5 +22,6 @@ table_parser_map = {
         'oh': ObstetricHistoryParser,
         'oa': OxytocinAdministrationParser,
         'ds': DispositionParser,
-        'ae': AdverseEventsParser
+        'ae': AdverseEventsParser,
+        'cm': ConcomitantMedicationParser
         }
