@@ -6,7 +6,9 @@ import table_parsers
 #from pyarrow import feather
 import os
 
-def parse_tables(processed_data_dir, raw_data_dir, output_dir, tables_to_parse, study_code):
+NUM_PATIENTS = {'303': 680, '004': 431}
+
+def parse_tables(processed_data_dir, raw_data_dir, output_dir, tables_to_parse, study_code, num_patients):
     processed_explorer = raw_data_explorer.RawDataExplorer()
     processed_explorer.set_base_dir(processed_data_dir)
     processed_explorer.load_data()
@@ -19,6 +21,8 @@ def parse_tables(processed_data_dir, raw_data_dir, output_dir, tables_to_parse, 
         processed_table = processed_explorer.get_data(filename='%s.sas7bdat' % table_name)
         raw_table = raw_explorer.get_data(filename='%s.sas7bdat' % table_name)
         parser = table_parsers.table_parser_map[table_name](study_code)
+        parser.set_log_path(output_dir)
+        parser.set_num_patients(num_patients)
         if extra_table_names:
             extra_tables = {extra_table: pd.DataFrame.from_csv(os.path.join(output_dir, '%s_COUNT_DATE.csv' %
                                                         (extra_table.upper()))) for extra_table in extra_table_names}
@@ -52,5 +56,5 @@ if __name__ == '__main__':
         raw_data_dir = '%s%s/%s%s'%(base_dir, current_case_study_code, raw_folder_prefix, current_case_study_code)
         output_dir = '%s%s/'%(output_base_dir, current_case_study_code)
         #os.makedirs(output_dir)
-        parse_tables(processed_data_dir, raw_data_dir, output_dir, initial_tables_to_parse, current_case_study_code)
-        parse_tables(processed_data_dir, raw_data_dir, output_dir, secondary_tables_to_parse, current_case_study_code)
+        parse_tables(processed_data_dir, raw_data_dir, output_dir, initial_tables_to_parse, current_case_study_code, NUM_PATIENTS[current_case_study_code])
+        parse_tables(processed_data_dir, raw_data_dir, output_dir, secondary_tables_to_parse, current_case_study_code, NUM_PATIENTS[current_case_study_code])

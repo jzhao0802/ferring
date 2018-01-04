@@ -12,12 +12,18 @@ class BaseTableParser(ABC):
     ''' Abstract Class that contains common functions useful for parsing all tables.
     '''    
       
-    def __init__(self, study_code, primary_key='USUBJID'):
+    def __init__(self, study_code, primary_key='USUBJID', table_name=''):
         super().__init__()
         self._primary_key = primary_key
         self._study_code = study_code
-    
-    
+        self._table_name = table_name
+
+    def set_log_path(self, path):
+        self._log_path = path
+
+    def set_num_patients(self, num_patients):
+        self._num_patients = num_patients
+
     def decode_byte_str_cols(self, df):
         ''' Convert all string cols to utf-8
         '''
