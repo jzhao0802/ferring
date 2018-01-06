@@ -9,7 +9,7 @@ class MedicalHistoryTermMapper(object):
         # (?=^((?!*).)*$) represents negated string group
         # (?!^*$) NEGATES EXACT EXPRESSION
         self._condition_map = {
-            'GBS POSITIVE' : '(?=.*(GROUP|GBS))(?=^((?!UNKNOWN).)*$)',
+            'GBS POSITIVE': '(?=.*(GROUP|GBS))(?=^((?!UNKNOWN).)*$)',
             'SMOKER': 'TOBACCO|SMOKE',
             'BIPOLAR DISORDER': 'BIPOLAR',
             'DEPRESSION': '(?=.*DEPR)(?=^((?!BIPOLAR).)*$)',
@@ -18,13 +18,25 @@ class MedicalHistoryTermMapper(object):
             'OBESITY': 'OBES',
             'GESTATIONAL HYPERTENSION': '(?=.*HYPERTENSION)(?=PREGNANCY|GESTATIONAL)',
             'HYPERTENSION': '(?=.*HYPERTENSION)(?=^((?!PREGNANCY|GESTATIONAL).)*$)',
-            'GESTATIONAL DIABETES': '(?=.*DIABETES)(?=^((?!(CLASS C)|(CLASS B)|(TYPE I)|(TYPE II)|(TYPE 1)|(TYPE 2)).)*$)(?!^DIABETES$)(?!^DIABETES B$)(?!^DIABETES (MELLITUS|MELLITIS)$)(?!^INSULIN DEPENDENT DIABETES$)',
+            'GESTATIONAL DIABETES': '(?=.*DIABETES)(?=^((?!(CLASS C)|(CLASS B)|(TYPE I)|(TYPE II)|(TYPE 1)|(TYPE 2)|(LAST PREGNANCY)).)*$)(?!^DIABETES$)(?!^DIABETES B$)(?!^DIABETES (MELLITUS|MELLITIS)$)(?!^INSULIN DEPENDENT DIABETES$)',
+            'GESTATIONAL DIABETES PREV PREG': '(?=.*DIABETES)(?=.*LAST)(?=^((?!(CLASS C)|(CLASS B)|(TYPE I)|(TYPE II)|(TYPE 1)|(TYPE 2)).)*$)(?!^DIABETES$)(?!^DIABETES B$)(?!^DIABETES (MELLITUS|MELLITIS)$)(?!^INSULIN DEPENDENT DIABETES$)',
             'DIABETES': '((?=.*DIABETES)(?=.*((CLASS C)|(CLASS B)|(TYPE I)|(TYPE II)|(TYPE 1)|(TYPE 2))))|(^(DIABETES|DIABETES B|DIABETES (MELLITUS|MELLITIS)|INSULIN DEPENDENT DIABETES)$)',
-            'PRE_ECLAMPSIA': 'ECLAMPSIA',
+            'PRE_ECLAMPSIA': '(?=.*ECLAMPSIA)(?=^((?!PREVIOUS PREGNANCY).)*$)',
+            'PRE_ECLAMPSIA PRIOR PREGNANCY': '(?=.*ECLAMPSIA)(?=.*PREVIOUS PREGNANCY)',
             'CHLAMYDIA': 'CHLAMYDIA',
             'POST_TERM PREGNANCY': 'POST-TERM PREGNANCY \(>=40W\)',
             'URINARY TRACT INFECTION': 'URINARY|UTI',
-            'YEAST INFECTION': 'YEAST'
+            'YEAST INFECTION': 'YEAST',
+            'LARGE BABY': '(?=.*LARGE)(?=(^((?!THYROID).)*$))',
+            'ANEMIA': 'ANEMIA',
+            'ANXIETY': 'ANXIETY',
+            'BACTERIAL VAGINOSIS': 'BACTERIAL',
+            'DECREASED FETAL MOVEMENT': 'DECREASED FETAL MOVEMENT',
+            'FETAL MACROSOMIA': 'MACROSOMIA',
+            'HERPES': 'HERP',
+            'SMALL FOR GESTATIONAL AGE': 'SMALL FOR'
+            #'ANEMIA': '(?=.*ANEMIA)(?=(^((?!PREGNANCY).)*$))',
+            #'ANEMIA PREGNANCY': '(?=.*ANEMIA)(?=.*PREG)'
         }
 
         self._matched_terms = {}
@@ -53,6 +65,7 @@ class MedicalHistoryTermMapper(object):
             grouped_terms['Prevelance'] = 100*(grouped_terms['Count']/num_patients)
             grouped_terms['Percentage of Term'] = 100 * (grouped_terms['Count'] / grouped_terms['Count'].sum())
             grouped_terms.loc['Total'] = grouped_terms.sum()
+            grouped_terms.loc['Total', 'Term'] = ''
             self._matched_terms[term] = grouped_terms
             df.loc[matches, term_column] = term
 

@@ -53,8 +53,9 @@ class MedicalHistoryParser(BaseTableParser):
         return pd.merge(df_first_date, df_last_date, on=self._primary_key)
     
     
-    def _process_table(self, raw_df, processed_df):
+    def _process_table(self, raw_df, processed_df, extra_tables=[]):
         #Use MHTERM in future??
+        #First clean medical history terms
         diagnosis_col = 'MHTERM'
         self.map_terms(processed_df, diagnosis_col)
         processed_df = self._mapper.filter_terms(processed_df, diagnosis_col)

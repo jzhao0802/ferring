@@ -24,8 +24,11 @@ def parse_tables(processed_data_dir, raw_data_dir, output_dir, tables_to_parse, 
         parser.set_log_path(output_dir)
         parser.set_num_patients(num_patients)
         if extra_table_names:
-            extra_tables = {extra_table: pd.DataFrame.from_csv(os.path.join(output_dir, '%s_COUNT_DATE.csv' %
-                                                        (extra_table.upper()))) for extra_table in extra_table_names}
+
+
+            extra_tables = {extra_table:
+                            pd.DataFrame.from_csv(os.path.join(output_dir, '%s_COUNT_DATE.csv' %(extra_table.upper()))) if 'sas7bdat' not in extra_table else processed_explorer.get_data(extra_table)
+                            for extra_table in extra_table_names}
             parsed_table = parser.process_table(raw_table, processed_table, pre_process=True, extra_tables=extra_tables)
         else:
             parsed_table = parser.process_table(raw_table, processed_table, pre_process=True)
@@ -47,7 +50,9 @@ if __name__ == '__main__':
     processed_folder_prefix = 'sdtm_data_Miso_Obs_'
     raw_folder_prefix = 'raw_data_Miso_Obs_'
     initial_tables_to_parse = {table: [] for table in ['mh', 'dd', 'ex', 'bs', 'dm', 'vs', 'oh', 'oa', 'ds']}
-    secondary_tables_to_parse = {'ae': ['ex'], 'cm': ['ex']}
+    #initial_tables_to_parse['mh'] = ['cm.sas7bdat']
+    secondary_tables_to_parse = {'cm': ['ex']}
+    #secondary_tables_to_parse = {'ae': ['ex'], 'cm': ['ex']}
 
     #tables_to_parse = ['oa']
     for case_study_index in range(len(case_study_codes)):

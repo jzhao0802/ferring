@@ -17,11 +17,10 @@ class DeliveryDataParser(BaseTableParser):
         self._delivery_methods = set(['MODE OF DELIVERY', 'Mode Of Delivery'])
 
     def extract_delivery_time(self, df):
-        return df[['USUBJID', 'DDDTC']].rename(columns={'DDDTC': 'DD_DELIVERY_TIME'})
+        return df[df['DDTEST'].isin(self._delivery_methods)][[self._primary_key, 'DDDTC']] \
+            .rename(columns={'DDDTC': 'DD_DELIVERY_TIME'})
 
     def extract_delivery_mode_information(self, df):
-        #return df[df['DDTEST'].isin(self._delivery_methods)][[self._primary_key, 'DDSTRESC', 'DDDTC']] \
-        #    .rename(columns={'DDSTRESC': 'DD_DELIVERY_METHOD', 'DDDTC': 'DD_DELIVERY_TIME'})
         df['DDTEST'] = df['DDTEST'].str.upper().str.replace(' ', '_')
         return df.pivot(index='USUBJID', columns='DDTEST', values='DDSTRESN').reset_index()
 

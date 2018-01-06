@@ -12,6 +12,7 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
 
     def __init__(self,  study_code, primary_key='USUBJID'):
         super().__init__(study_code, primary_key=primary_key)
+        self._table_name = 'ConcomitantMedication'
 
     def extract_cm_events(self, df, exposure_table):
         exposure_table['EX_START_TIME'] = pd.to_datetime(exposure_table['EX_START_TIME'])
@@ -24,10 +25,18 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
         print(df)
         print(len(df))
         print (len(df['USUBJID'].unique()))
-        diagnosis_col = 'CMTRT'
+
+        #Need to capture two types of events - medications + medical history event...
+        #Start with history event for now...
+        diagnosis_col = 'CMINDC'
+        self.map_terms(df, diagnosis_col)
+        df = self._mapper.filter_terms(df, diagnosis_col)
         df[diagnosis_col] = df[diagnosis_col].str.upper().str.replace(' ', '_')
         df_counts = self.aggregate_counts(df, diagnosis_col)
         df_dates = self.aggregate_dates(df, diagnosis_col, 'CMSTDTC')
+
+        #For now ignore medications...
+
         return pd.merge(df_counts, df_dates, on=self._primary_key, how='outer')
 
     def _process_table(self, raw_df, processed_df, extra_tables={}):
