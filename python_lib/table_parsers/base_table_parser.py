@@ -24,6 +24,12 @@ class BaseTableParser(ABC):
     def set_num_patients(self, num_patients):
         self._num_patients = num_patients
 
+    def calculate_prevalences(self, df, term_column):
+        prevalences = df.drop_duplicates(subset=[term_column, self._primary_key]).groupby(term_column).size().sort_values(ascending=False)
+        prevalences = prevalences.reset_index().rename(columns={0: 'Count', term_column: 'Term'})
+        prevalences['Prevalence'] = (prevalences['Count']*100)/self._num_patients
+        return prevalences
+
     def decode_byte_str_cols(self, df):
         ''' Convert all string cols to utf-8
         '''

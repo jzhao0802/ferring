@@ -14,7 +14,7 @@ class DeliveryDataParser(BaseTableParser):
     
     def __init__(self, study_code, primary_key='USUBJID'):
         super().__init__(study_code, primary_key=primary_key)
-        self._delivery_methods = set(['MODE OF DELIVERY', 'Mode Of Delivery'])
+        self._delivery_methods = set(['MODE OF DELIVERY', 'MODE_OF_DELIVERY', 'Mode Of Delivery'])
 
     def extract_delivery_time(self, df):
         return df[df['DDTEST'].isin(self._delivery_methods)][[self._primary_key, 'DDDTC']] \
@@ -22,6 +22,7 @@ class DeliveryDataParser(BaseTableParser):
 
     def extract_delivery_mode_information(self, df):
         df['DDTEST'] = df['DDTEST'].str.upper().str.replace(' ', '_')
+        df['DDSTRESN'][df['DDSTRESN'].isnull()] = df['DDSTRESC'][df['DDSTRESN'].isnull()]
         return df.pivot(index='USUBJID', columns='DDTEST', values='DDSTRESN').reset_index()
 
 

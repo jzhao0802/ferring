@@ -7,12 +7,20 @@ Created on Mon Dec 11 15:49:27 2017
 
 from table_parsers.medical_history_parser import MedicalHistoryParser
 import pandas as pd
-
+import os
 class ConcomitantMedicationParser(MedicalHistoryParser):
 
     def __init__(self,  study_code, primary_key='USUBJID'):
         super().__init__(study_code, primary_key=primary_key)
         self._table_name = 'ConcomitantMedication'
+
+    def log_medication_prevalences(self, df):
+        term_column = 'CMTRT'
+        prevalences = self.calculate_prevalences(df, term_column)
+        spreadsheet = pd.ExcelWriter(os.path.join(self._log_path, '%s_concomitant_medications.xlsx'%self._table_name))
+        prevalences.to_excel(spreadsheet, term_column)
+        spreadsheet.save()
+        spreadsheet.close()
 
     def extract_cm_events(self, df, exposure_table):
         exposure_table['EX_START_TIME'] = pd.to_datetime(exposure_table['EX_START_TIME'])
@@ -25,7 +33,7 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
         print(df)
         print(len(df))
         print (len(df['USUBJID'].unique()))
-
+        self.log_medication_prevalences(df)
         #Need to capture two types of events - medications + medical history event...
         #Start with history event for now...
         diagnosis_col = 'CMINDC'
@@ -34,6 +42,7 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
         df[diagnosis_col] = df[diagnosis_col].str.upper().str.replace(' ', '_')
         df_counts = self.aggregate_counts(df, diagnosis_col)
         df_dates = self.aggregate_dates(df, diagnosis_col, 'CMSTDTC')
+
 
         #For now ignore medications...
 
