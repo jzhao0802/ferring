@@ -16,6 +16,7 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
 
     def log_medication_prevalences(self, df):
         term_column = 'CMTRT'
+        df[term_column] = df[term_column].str.upper().str.strip()
         prevalences = self.calculate_prevalences(df, term_column)
         spreadsheet = pd.ExcelWriter(os.path.join(self._log_path, '%s_concomitant_medications.xlsx'%self._table_name))
         prevalences.to_excel(spreadsheet, term_column)
@@ -30,9 +31,9 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
 
         df = df[df['CMSTDTC'].dt.date < df['EX_START_TIME'].dt.date]
         #print(df[['EX_START_TIME', 'CMSTDTC']])
-        print(df)
-        print(len(df))
-        print (len(df['USUBJID'].unique()))
+        #print(df)
+        #print(len(df))
+        #print (len(df['USUBJID'].unique()))
         self.log_medication_prevalences(df)
         #Need to capture two types of events - medications + medical history event...
         #Start with history event for now...

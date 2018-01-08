@@ -20,16 +20,18 @@ def main(data_dir):
 
 
     #Add time to oxytocin administration
-    df['TIME_DELTA_EX_START_OXYTOCIN_ADMIN'] = (pd.to_datetime(df['OAENTPT']) - pd.to_datetime(
+    df['TIME_DELTA_EX_START_OXYTOCIN_ADMIN'] = (pd.to_datetime(df['OXYTOCIN_ADMINISTRATION_TIME']) - pd.to_datetime(
         df['EX_START_TIME'])) / np.timedelta64(1, 'h')
 
     #Add time to onset of labour
-    df['TIME_DELTA_EX_START_ONSET_LABOUR'] = (pd.to_datetime(df['ACTIVE LABOR']) - pd.to_datetime(
+    df['TIME_DELTA_EX_START_ONSET_LABOUR'] = (pd.to_datetime(df['ACTIVE_LABOUR_TIME']) - pd.to_datetime(
         df['EX_START_TIME'])) / np.timedelta64(1, 'h')
 
     #Create label column using outcome definition
-    df['label'] = (df['TIME_DELTA_EX_START_ONSET_LABOUR'] <=24) & (df['MODE_OF_DELIVERY'] == 'VAGINAL')
-    df['label'] = df['label'].astype(int)
+    df['LABEL'] = (df['TIME_DELTA_EX_START_ONSET_LABOUR'] <=24) & (df['MODE_OF_DELIVERY'] == 'VAGINAL')
+    df['LABEL'] = df['LABEL'].astype(int)
+
+    df = df.filter(regex='(?=^((?!Unnamed).)*$)')
 
     #Write out flatfile
     pd.DataFrame.to_csv(df, os.path.join('%s/merged_data/PROCESSED_FLATFILE.csv' % (data_dir)))

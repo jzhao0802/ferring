@@ -10,7 +10,7 @@ class MedicalHistoryTermMapper(object):
         # (?!^*$) NEGATES EXACT EXPRESSION
         self._condition_map = {
             'GBS POSITIVE': '(?=.*(GROUP|GBS))(?=^((?!UNKNOWN).)*$)',
-            'SMOKER': 'TOBACCO|SMOKE',
+            'SMOKER': 'TOBACCO|SMOK',
             'BIPOLAR DISORDER': 'BIPOLAR',
             'DEPRESSION': '(?=.*DEPR)(?=^((?!BIPOLAR).)*$)',
             'OLIGOHYDRAMNIOS': 'OLIGOHYDRAMNIOS',

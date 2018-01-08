@@ -33,9 +33,16 @@ def main(data_dir):
     cm_keys_add = set(df_MH_counts.keys()) - set(df_CM_counts.keys())
     print (cm_keys_add)
     for k in cm_keys_add: df_CM_counts[k] = 0
-    df_combined_counts = (df_MH_counts + df_CM_counts).reset_index()
+    df_combined_counts = (df_MH_counts + df_CM_counts)
 
-    df = df.filter(regex='(?=^((?!COUNT).)*$)').filter(regex='(?=^((?!CMINDC).)*$)')
+    #Convert counts to flags
+    df_combined_counts[df_combined_counts > 0] = 1
+    df_combined_counts.columns = df_combined_counts.columns.map(lambda x: x.replace('_COUNT', '_FLAG'))
+
+    df_combined_counts = df_combined_counts.reset_index()
+
+    #For now remove all medical history related variables. Include only flags for now instead of actual counts
+    df = df.filter(regex='(?=^((?!MHTERM).)*$)').filter(regex='(?=^((?!CMINDC).)*$)')
     df = pd.DataFrame.merge(df, df_combined_counts, how='outer')
 
     prevalences = (df.filter(regex="^MHTERM").filter(regex='COUNT$') > 0).sum().sort_values(ascending=False).reset_index()
