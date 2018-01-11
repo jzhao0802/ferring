@@ -33,6 +33,9 @@ def main(data_dir):
 
     df = df.filter(regex='(?=^((?!Unnamed).)*$)')
 
+    #Remove nan values from canada dummy flag
+    df['COUNTRY_dummy_CAN'][df['COUNTRY_dummy_CAN'].isnull()] = 0
+
     #Write out flatfile
     pd.DataFrame.to_csv(df, os.path.join('%s/merged_data/PROCESSED_FLATFILE.csv' % (data_dir)))
 

@@ -34,7 +34,8 @@ class MedicalHistoryTermMapper(object):
             'DECREASED FETAL MOVEMENT': 'DECREASED FETAL MOVEMENT',
             'FETAL MACROSOMIA': 'MACROSOMIA',
             'HERPES': 'HERP',
-            'SMALL FOR GESTATIONAL AGE': 'SMALL FOR'
+            'SMALL FOR GESTATIONAL AGE': 'SMALL FOR',
+            'ABRUPTION': 'ABR'
             #'ANEMIA': '(?=.*ANEMIA)(?=(^((?!PREGNANCY).)*$))',
             #'ANEMIA PREGNANCY': '(?=.*ANEMIA)(?=.*PREG)'
         }
