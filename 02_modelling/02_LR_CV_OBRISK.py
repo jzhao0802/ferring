@@ -8,14 +8,14 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 from xgboost import XGBClassifier
 from sklearn import tree, neighbors, ensemble, metrics, svm, preprocessing, linear_model, tree
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split, cross_validate
 from sklearn.metrics import precision_recall_curve
 from sklearn.pipeline import Pipeline
 import modelling
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-
+import sys
 #Set random seed to be fixed to allow reproducability
 __SEED__ = 1234
 np.random.seed(__SEED__)
@@ -33,6 +33,7 @@ if __name__ == '__main__':
 
     #Clean dataset for modelling
     df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df)
+    df_cleaned = df_cleaned.reset_index(drop=True)
 
     print(list(df_cleaned.keys()))
     print (removed_vars)
@@ -40,54 +41,65 @@ if __name__ == '__main__':
 
 
     #Create test ensembl/grid search
-    #clf = ensemble.RandomForestClassifier()
     clf = linear_model.LogisticRegression()
-    #clf = XGBClassifier()
-    #pipeline_config = {"n_estimators": [1, 2, 3, 4, 5, 10, 20, 50],
-    #                   "criterion": ['gini', 'entropy'],
-    #                   "max_features": ['auto', 'sqrt', 'log2']}
 
-    pipeline_config = {
-       'penalty': ['l2', 'l1'],
-        'tol': [1e-4, 1e-3, 1e-2, 1e-1],
-       # 'C': [1, 0.8, 0.6, 0.4, 0.2, 0.01, 0.001, 0.0001]
-        'C': [1e42]
-    }
 
-    #pipeline_config = {
-
-    #}
-    #pipeline_config = {}
     kf = StratifiedKFold(n_splits=5, shuffle=True)
 
-    gs = GridSearchCV(
-        estimator = clf,
-        param_grid = pipeline_config,
-        scoring = 'precision',
-        cv = kf,
-        n_jobs=10
-    )
+    label_col = 'LABEL'
 
-    label = df_cleaned['LABEL']
-    del df_cleaned['LABEL']
+    model_features = {
+            'ALL': list(df_cleaned.keys()),
+            'OBRISK': ['^RACE', 'GESTATIONAL_DIABETES', 'AGE', 'BMI', 'BS']
+        }
 
-    #print(train_test_split(df_cleaned, label, test_size = 0.2))
+    eval_metrics = [metrics.precision_recall_curve, metrics.roc_curve, metrics.roc_auc_score, metrics.accuracy_score,
+                    metrics.confusion_matrix, metrics.classification_report, modelling.LR_model_sum]
+    parameters = {'C': 1e90}
+    grid_search_metric = 'ROC_AUC'
 
-    #create hold out testing set
-    X_train, X_test, y_train, y_test = train_test_split(df_cleaned, label, test_size=0.2, random_state=__SEED__)
+    y = df_cleaned.pop('LABEL')
 
-    X_train.reset_index(drop=True)
-    X_test.reset_index(drop=True)
-    y_test.reset_index(drop=True)
-    y_train.reset_index(drop=True)
+    output_metrics = {}
 
-    print (X_train.shape)
+    for model_name,feature_set in model_features.items():
+        #for origin in model_origins:
+        modelling_data = df_cleaned.filter(regex='|'.join(feature_set))
+
+
+        cv_outputs = modelling.run_CV(df_cleaned, y, linear_model.LogisticRegression, kf, parameters, flatten=True)
+        output_metrics[model_name] = modelling.calc_CV_metrics(**cv_outputs['predictions']['test'],
+                                                               metrics=eval_metrics, models=cv_outputs['models'],
+                                                               feature_names=list(modelling_data.columns.values))
+
+#    coefficient_comparison = modelling.LR_model_sum()
+
+
+
+                #gs = GridSearchCV(
+                #    estimator=clf,
+                #    param_grid=pipeline_config,
+                #    scoring='precision',
+                #    cv=kf,
+                #    n_jobs=10
+                #)
+
+
+
+
+
+    spreadsheet = pd.ExcelWriter('F:/Projects/Ferring/results/modelling/OBRISK_comparison.xlsx')
+    modelling.add_metrics_to_spreadsheet(spreadsheet, output_metrics)
+    spreadsheet.save()
+    spreadsheet.close()
+
+        #print (train_indicies, test_indicies)
+    #print(list(map(len, list(CV_splits)[0])))
+
+    sys.exit()
+
 
     #fit
-    gs.fit(X_train, y_train)
-
-
-
     gs.best_estimator_.fit(X_train, y_train)
 
     print (gs.best_params_)
@@ -109,7 +121,6 @@ if __name__ == '__main__':
     #print(probs)
     #print(preds)
     precision, recall, threshold = precision_recall_curve(y_test, probs)
-
 
     plt.step(recall, precision, color='b', alpha=0.2,
              where='post')
