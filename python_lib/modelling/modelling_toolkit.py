@@ -48,10 +48,10 @@ def run_CV(X, y, clf_class, cv_method, params, metrics=[], statsmodel=False, fla
             cv_outputs['predictions']['test']['y_pred'].append(clf.predict(X.reindex(test_indicies)))
         else:
             cv_outputs['predictions']['test']['probs'].append(clf.predict(X.reindex(test_indicies)))
-            cv_outputs['predictions']['test']['y_pred'].append([1 if x > 0.5 else 0 for x in cv_outputs['predictions']['test']['probs'][-1]])
+            cv_outputs['predictions']['test']['y_pred'].append([1 if x >= 0.5 else 0 for x in cv_outputs['predictions']['test']['probs'][-1]])
             if return_train_preds:
                 cv_outputs['predictions']['train']['probs'].append(clf.predict(X.reindex(train_indicies)))
-                cv_outputs['predictions']['train']['y_pred'].append([1 if x > 0.5 else 0 for x in cv_outputs['predictions']['train']['probs'][-1]])
+                cv_outputs['predictions']['train']['y_pred'].append([1 if x >= 0.5 else 0 for x in cv_outputs['predictions']['train']['probs'][-1]])
 
         cv_outputs['predictions']['test']['y_true'].append(y.loc[test_indicies])
         cv_outputs['predictions']['train']['y_true'].append(y.loc[train_indicies])
@@ -82,21 +82,33 @@ def classifaction_report_to_df(report):
         report_data.append(row)
     return pd.DataFrame.from_dict(report_data)
 
-def LR_model_sum(models, feature_names, coeff_var='coef_', prefix='fold'):
+def LR_model_sum(models, feature_names, coeff_var='coef_', prefix='fold', statsmodel=False):
+
     summary_dict = {'feature': feature_names}
 
     if not isinstance(models, dict):
         models = {i : models[i] for i in range(len(models))}
 
     for name,model in models.items():
-        coefficients = getattr(model, coeff_var)
-        print(coefficients)
-        summary_dict['%s_%s'%(prefix, name)] =  [np.exp(coefficients[0][i]) for i in range(len(feature_names))]
+        if statsmodel:
+            cur_coeff = np.exp(model.params).reset_index().rename(columns={'index': 'feature', 0: '%s_%s'%(prefix, name)})
+            if isinstance(summary_dict, dict):
+                summary_dict = cur_coeff
+            else:
+                summary_dict = pd.merge(summary_dict, cur_coeff, on='feature')
+        else:
+            coefficients = getattr(model, coeff_var)
+            #print(coefficients)
+            summary_dict['%s_%s'%(prefix, name)] = [np.exp(coefficients[0][i]) for i in range(len(feature_names))]
 
-    df_coeff = pd.DataFrame.from_dict(summary_dict)
+    if not statsmodel:
+        df_coeff = pd.DataFrame.from_dict(summary_dict)
+    else:
+        df_coeff = summary_dict
+
     df_coeff['mean'] = df_coeff.mean(axis=1, numeric_only=True)
     df_coeff['std'] = df_coeff.std(axis=1, numeric_only=True)
-    print(df_coeff)
+    #print(df_coeff)
     return df_coeff
 
 

@@ -15,14 +15,18 @@ import modelling
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import statsmodels.api as sm
 import sys
+import sys
+from functools import partial, update_wrapper
+
 #Set random seed to be fixed to allow reproducability
 __SEED__ = 1234
 np.random.seed(__SEED__)
 random.seed(__SEED__)
 
 
-if __name__ == '__main__':
+def main(use_statsmodel=False):
     dataset_cleaner = modelling.ModellingDatasetCleaner()
 
     #Load data
@@ -32,7 +36,14 @@ if __name__ == '__main__':
     #delivery_dict = {'CESAREAN SECTION': 0, 'VAGINAL': 1}
 
     #Clean dataset for modelling
-    df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df)
+    #Original with gs_age in days and no merging of race cats
+    #df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df, gs_age_weeks=True)
+    #GS age in weeks
+    df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df, gs_age_weeks=True)
+    #GS_age in weeks, merged asian and other
+    #]df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df, gs_age_weeks=True, merge_race_dummies=['OTHER', 'ASIAN'])
+    #GS age in weeks, converted race to binary - WHITE or OTHER
+    #df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df, gs_age_weeks=True, merge_race_dummies=['OTHER', 'ASIAN', 'BLACK_OR_AFRICAN_AMERICAN', 'HISPANIC'])
     df_cleaned = df_cleaned.reset_index(drop=True)
 
     print(list(df_cleaned.keys()))
@@ -41,7 +52,6 @@ if __name__ == '__main__':
 
 
     #Create test ensembl/grid search
-    clf = linear_model.LogisticRegression()
 
 
     kf = StratifiedKFold(n_splits=5, shuffle=True)
@@ -49,12 +59,18 @@ if __name__ == '__main__':
     label_col = 'LABEL'
 
     model_features = {
-            'ALL': list(df_cleaned.keys()),
-            'OBRISK': ['^RACE', 'GESTATIONAL_DIABETES', 'AGE', 'BMI', 'BS']
-        }
+            #'ALL': list(df_cleaned.keys()),
+            'OBRISK': ['^RACE', '^AGE', '^GESTATIONAL_AGE', 'BMI', '^BS_BASELINE$', 'PREGTYPE', 'MHTERM_DIABETES_FLAG']
+            #'OBRISK': ['^RACE', '^AGE', '^GESTATIONAL_AGE', 'BMI', '^BS_BASELINE$', 'PREGTYPE']
+    #        'OBRISK': ['^RACE', 'GESTATIONAL_DIABETES', 'AGE', 'BMI', 'BS']
+    }
+
+
+    LR_model_sum = partial(modelling.LR_model_sum, statsmodel=use_statsmodel)
+    update_wrapper(LR_model_sum, modelling.LR_model_sum)
 
     eval_metrics = [metrics.precision_recall_curve, metrics.roc_curve, metrics.roc_auc_score, metrics.accuracy_score,
-                    metrics.confusion_matrix, metrics.classification_report, modelling.LR_model_sum]
+                    metrics.confusion_matrix, metrics.classification_report, LR_model_sum]
     parameters = {'C': 1e90}
     grid_search_metric = 'ROC_AUC'
 
@@ -62,77 +78,27 @@ if __name__ == '__main__':
 
     output_metrics = {}
 
+    clf_class = linear_model.LogisticRegression if not use_statsmodel else sm.Logit
+
     for model_name,feature_set in model_features.items():
+        print(feature_set)
         #for origin in model_origins:
         modelling_data = df_cleaned.filter(regex='|'.join(feature_set))
 
+        cv_outputs = modelling.run_CV(modelling_data, y, clf_class, kf, parameters, flatten=True, statsmodel=use_statsmodel)
 
-        cv_outputs = modelling.run_CV(df_cleaned, y, linear_model.LogisticRegression, kf, parameters, flatten=True)
         output_metrics[model_name] = modelling.calc_CV_metrics(**cv_outputs['predictions']['test'],
                                                                metrics=eval_metrics, models=cv_outputs['models'],
                                                                feature_names=list(modelling_data.columns.values))
 
-#    coefficient_comparison = modelling.LR_model_sum()
 
-
-
-                #gs = GridSearchCV(
-                #    estimator=clf,
-                #    param_grid=pipeline_config,
-                #    scoring='precision',
-                #    cv=kf,
-                #    n_jobs=10
-                #)
-
-
-
-
-
-    spreadsheet = pd.ExcelWriter('F:/Projects/Ferring/results/modelling/OBRISK_comparison.xlsx')
+    suffix = '_statsmodel' if use_statsmodel else ''
+    spreadsheet = pd.ExcelWriter('F:/Projects/Ferring/results/modelling/OBRISK_comparison%s.xlsx'%suffix)
     modelling.add_metrics_to_spreadsheet(spreadsheet, output_metrics)
     spreadsheet.save()
     spreadsheet.close()
 
-        #print (train_indicies, test_indicies)
-    #print(list(map(len, list(CV_splits)[0])))
+if __name__ == '__main__':
+    use_statsmodel = '--statsmodel' in sys.argv
+    main(use_statsmodel=use_statsmodel)
 
-    sys.exit()
-
-
-    #fit
-    gs.best_estimator_.fit(X_train, y_train)
-
-    print (gs.best_params_)
-    #gs
-    preds = gs.predict(X_test)
-
-    '''
-    Scikit-Learn confusion matrix reads as:
-    TP  FN
-    FP  TN    
-    '''
-    conf_matrix = metrics.confusion_matrix(y_test, preds)
-    print(conf_matrix)
-    print(metrics.classification_report(y_test, preds))
-
-    probs = gs.decision_function(X_test)
-    #probs = gs.predict_proba(X_test)
-    #probs_pos = [x[1] for x in probs]
-    #print(probs)
-    #print(preds)
-    precision, recall, threshold = precision_recall_curve(y_test, probs)
-
-    plt.step(recall, precision, color='b', alpha=0.2,
-             where='post')
-    plt.fill_between(recall, precision, step='post', alpha=0.2,
-                     color='b')
-
-    #coefficients = gs.best_estimator_.coef_
-    #print (precision, recall, threshold)
-    #[print(list(X_train)[i], np.exp(coefficients[0][i])) for i in range(len(list(X_train.keys())))]
-
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.ylim([0.0, 1.05])
-    plt.xlim([0.0, 1.0])
-    plt.show()

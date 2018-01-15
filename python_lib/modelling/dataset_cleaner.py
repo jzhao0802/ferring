@@ -45,6 +45,11 @@ class ModellingDatasetCleaner(object):
         '''
         return [self.remove_ref_dummy_class(df, dummy) for dummy in self._dummy_var_prefixes]
 
+    def convert_gestational_age_to_weeks(self, df):
+        df.loc[:,'GESTATIONAL_AGE_WEEKS'] = round(df['GESTATIONAL_AGE_DAYS']/7)
+        del df['GESTATIONAL_AGE_DAYS']
+
+
     def select_modelling_features(self, df):
         '''
         Remove variables no relevant to modelling
@@ -52,6 +57,17 @@ class ModellingDatasetCleaner(object):
         :return: dataframe with variables not relevant to modelling remove
         '''
         return df.filter(regex='(?=(^((?!%s).)*$))'%('|'.join(self._features_to_remove)))
+
+    def merge_race_dummy_classes(self, df, merge_list=[]):
+        #print (df.filter(regex='^RACE'))
+        merged = 'RACE_dummy_' + '_'.join(merge_list)
+        #df.insert(-1, merged, False)
+        df[merged] = False
+        for dummy in merge_list:
+            df[merged] = df['RACE_dummy_%s'%dummy] + df[merged]
+            del df['RACE_dummy_%s'%dummy]
+        #print (df[merged])
+
 
     def remove_sparse_variables(self, df, threshold, label_col, thresh_type='both'):
         if thresh_type == 'pos': df_thresh = df[df[label_col] == 1]
@@ -64,7 +80,7 @@ class ModellingDatasetCleaner(object):
         for var in vars_to_remove: del df[var]
         return vars_to_remove
 
-    def clean_data_for_modelling(self, df, sparse_var_threshold=10, label_col='LABEL', thresh_type='both'):
+    def clean_data_for_modelling(self, df, sparse_var_threshold=10, label_col='LABEL', thresh_type='both', gs_age_weeks=False, merge_race_dummies=[]):
         '''
         Remove variables not necessary for modelling and create reference class for dummy variables
         :param df: dataframe representing flatfile
@@ -72,9 +88,13 @@ class ModellingDatasetCleaner(object):
             first element - dataframe with irrelevant variables removed and reference classes for dummy variables removed.
             second element - dummy variable used as reference class.
         '''
+        if merge_race_dummies:
+            self.merge_race_dummy_classes(df, merge_list=merge_race_dummies)
         df = self.remove_nan_BS(df)
         df = self.select_modelling_features(df)
         ref_dummy_variables = self.remove_all_ref_dummy_classes(df)
         removed_vars = self.remove_sparse_variables(df, sparse_var_threshold, label_col, thresh_type=thresh_type)
+        if gs_age_weeks:
+            self.convert_gestational_age_to_weeks(df)
         return (df, ref_dummy_variables, removed_vars)
 
