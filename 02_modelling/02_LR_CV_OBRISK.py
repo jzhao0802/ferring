@@ -19,7 +19,7 @@ import statsmodels.api as sm
 import sys
 import sys
 from functools import partial, update_wrapper
-
+import pickle
 #Set random seed to be fixed to allow reproducability
 __SEED__ = 1234
 np.random.seed(__SEED__)
@@ -31,6 +31,7 @@ def main(use_statsmodel=False):
 
     #Load data
     data_dir = 'F:/Projects/Ferring/data/pre_modelling/'
+    results_dir = 'F:/Projects/Ferring/results/modelling/02_LR_CV_OBRISK/'
     df = pd.DataFrame.from_csv(os.path.join('%s/merged_data/PROCESSED_FLATFILE.csv' % (data_dir)))
 
     #delivery_dict = {'CESAREAN SECTION': 0, 'VAGINAL': 1}
@@ -59,7 +60,7 @@ def main(use_statsmodel=False):
     label_col = 'LABEL'
 
     model_features = {
-            #'ALL': list(df_cleaned.keys()),
+           'ALL': list(df_cleaned.keys()),
             'OBRISK': ['^RACE', '^AGE', '^GESTATIONAL_AGE', 'BMI', '^BS_BASELINE$', 'PREGTYPE', 'MHTERM_DIABETES_FLAG']
             #'OBRISK': ['^RACE', '^AGE', '^GESTATIONAL_AGE', 'BMI', '^BS_BASELINE$', 'PREGTYPE']
     #        'OBRISK': ['^RACE', 'GESTATIONAL_DIABETES', 'AGE', 'BMI', 'BS']
@@ -91,13 +92,28 @@ def main(use_statsmodel=False):
                                                                metrics=eval_metrics, models=cv_outputs['models'],
                                                                feature_names=list(modelling_data.columns.values))
 
-
+    print(output_metrics['OBRISK']['confusion_matrix'])
     suffix = '_statsmodel' if use_statsmodel else ''
-    spreadsheet = pd.ExcelWriter('F:/Projects/Ferring/results/modelling/OBRISK_comparison%s.xlsx'%suffix)
+    spreadsheet = pd.ExcelWriter('%s/OBRISK_comparison%s.xlsx'%(results_dir, suffix))
     modelling.add_metrics_to_spreadsheet(spreadsheet, output_metrics)
     spreadsheet.save()
     spreadsheet.close()
 
+    with open('%s/cv_outputs%s.pickle'%(results_dir, suffix), 'wb') as fd:
+        pickle.dump([cv_outputs, output_metrics], fd)
+
+    #Plot ROC curve
+    import matplotlib.pyplot as plt
+    import seaborn
+    seaborn.set()
+    for model in output_metrics.keys():
+        pd.DataFrame.from_dict(output_metrics[model]['roc_curve']).plot(x='false_pos_rate', y='true_pos_rate', legend=False, title='ROC Curve (AUC = %.2f%%)'%(output_metrics[model]['roc_auc_score']*100))
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.savefig('%s/%s_ROC_curve.svg'%(results_dir, model), format='svg')
+
+
+    plt.show()
 if __name__ == '__main__':
     use_statsmodel = '--statsmodel' in sys.argv
     main(use_statsmodel=use_statsmodel)
