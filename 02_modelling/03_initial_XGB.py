@@ -20,6 +20,7 @@ import sys
 import sys
 from functools import partial, update_wrapper
 import pickle
+from xgboost import XGBClassifier
 #Set random seed to be fixed to allow reproducability
 __SEED__ = 1234
 np.random.seed(__SEED__)
@@ -31,7 +32,7 @@ def main(use_statsmodel=False):
 
     #Load data
     data_dir = 'F:/Projects/Ferring/data/pre_modelling/'
-    results_dir = 'F:/Projects/Ferring/results/modelling/02_LR_CV_OBRISK/'
+    results_dir = 'F:/Projects/Ferring/results/modelling/03_initial_XGB/'
     df = pd.DataFrame.from_csv(os.path.join('%s/merged_data/PROCESSED_FLATFILE.csv' % (data_dir)))
 
     #delivery_dict = {'CESAREAN SECTION': 0, 'VAGINAL': 1}
@@ -55,7 +56,7 @@ def main(use_statsmodel=False):
     #Create test ensembl/grid search
 
 
-    kf = StratifiedKFold(n_splits=5, shuffle=True)
+    outer_kf = StratifiedKFold(n_splits=3, shuffle=True)
 
     label_col = 'LABEL'
 
@@ -67,30 +68,46 @@ def main(use_statsmodel=False):
     }
 
 
-    LR_model_sum = partial(modelling.model_sum, statsmodel=use_statsmodel)
-    update_wrapper(LR_model_sum, modelling.LR_model_sum)
+    model_sum = partial(modelling.model_sum, statsmodel=use_statsmodel, type='XGB', coeff_var='feature_importances_')
+    update_wrapper(model_sum, modelling.model_sum)
 
     eval_metrics = [metrics.precision_recall_curve, metrics.roc_curve, metrics.roc_auc_score, metrics.accuracy_score,
-                    metrics.confusion_matrix, metrics.classification_report, LR_model_sum]
+                    metrics.confusion_matrix, metrics.classification_report, model_sum]
     parameters = {'C': 1e90}
     grid_search_metric = 'ROC_AUC'
 
     y = df_cleaned.pop('LABEL')
 
     output_metrics = {}
+    pipeline_config = {"n_estimators": [1, 2, 3, 4, 5, 10, 20, 50],
+                       'max_depth': [1,2,3,4,5,6,7,8,9,10],
+                       'learning_rate': [0.001, 0.01, 0.1, 1]
+                       }
 
-    clf_class = linear_model.LogisticRegression if not use_statsmodel else sm.Logit
+    #clf_class = linear_model.LogisticRegression if not use_statsmodel else sm.Logit
+    clf_class = XGBClassifier
 
     for model_name,feature_set in model_features.items():
         print(feature_set)
         #for origin in model_origins:
         modelling_data = df_cleaned.filter(regex='|'.join(feature_set))
 
-        cv_outputs = modelling.run_CV(modelling_data, y, clf_class, kf, parameters, flatten=True, statsmodel=use_statsmodel)
+        inner_kf = StratifiedKFold(n_splits=5, shuffle=True)
+
+        gs = GridSearchCV(
+            estimator=clf_class(),
+            param_grid=pipeline_config,
+            scoring='roc_auc',
+            cv=inner_kf,
+            n_jobs=10
+        )
+        cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, parameters, flatten=True, statsmodel=use_statsmodel, grid_search=gs)
 
         output_metrics[model_name] = modelling.calc_CV_metrics(**cv_outputs['predictions']['test'],
                                                                metrics=eval_metrics, models=cv_outputs['models'],
                                                                feature_names=list(modelling_data.columns.values))
+
+        print (cv_outputs['best_params'])
 
     print(output_metrics['OBRISK']['confusion_matrix'])
     suffix = '_statsmodel' if use_statsmodel else ''
@@ -117,4 +134,3 @@ def main(use_statsmodel=False):
 if __name__ == '__main__':
     use_statsmodel = '--statsmodel' in sys.argv
     main(use_statsmodel=use_statsmodel)
-

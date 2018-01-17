@@ -14,8 +14,10 @@ def init_pred_dict():
         } for split in splits
     }
 
-def run_CV(X, y, clf_class, cv_method, params, metrics=[], statsmodel=False, flatten=False, return_train_preds=False):
+
+def run_CV(X, y, clf_class, cv_method, params={}, metrics=[], statsmodel=False, flatten=False, return_train_preds=False, grid_search=None):
     #CV_splits = kf.split(df_cleaned, label)
+    #Note - if inner_cv_method given, assume this is a nested CV grid search...
     cv_outputs = {
         'models': [],
         'scores': [],
@@ -28,13 +30,21 @@ def run_CV(X, y, clf_class, cv_method, params, metrics=[], statsmodel=False, fla
     #cv_outputs.update({str(func):[] for func in scoring_functions})
 
     for train_indicies, test_indicies in cv_method.split(X, y):
-        if not statsmodel:
-            clf = clf_class(**params)
-            #print(clf)
-            clf.fit(X.reindex(index=train_indicies, copy=False), y.reindex(index=train_indicies, copy=False))
-        else:
+        if statsmodel:
             clf = clf_class(y.reindex(train_indicies), X.reindex(train_indicies))
             clf = clf.fit()
+        else:
+            if grid_search:
+                grid_search.fit(X.reindex(index=train_indicies, copy=False), y.reindex(index=train_indicies, copy=False))
+                if 'best_params' in cv_outputs:
+                    cv_outputs['best_params'].append(grid_search.best_params_)
+                else:
+                    cv_outputs['best_params'] = [grid_search.best_params_]
+                clf = grid_search.best_estimator_
+            else:
+                clf = clf_class(**params)
+            clf.fit(X.reindex(index=train_indicies, copy=False), y.reindex(index=train_indicies, copy=False))
+            #print(clf)
 
         #Get outputs for CV
         cv_outputs['models'].append(clf)
@@ -51,7 +61,7 @@ def run_CV(X, y, clf_class, cv_method, params, metrics=[], statsmodel=False, fla
             cv_outputs['predictions']['test']['y_pred'].append([1 if x >= 0.5 else 0 for x in cv_outputs['predictions']['test']['probs'][-1]])
             if return_train_preds:
                 cv_outputs['predictions']['train']['probs'].append(clf.predict(X.reindex(train_indicies)))
-                cv_outputs['predictions']['train']['y_pred'].append([1 if x >= 0.5 else 0 for x in cv_outputs['predictions']['train']['probs'][-1]])
+                cv_outputs['predictions']['train']['y_pred'].append([1 if x > 0.5 else 0 for x in cv_outputs['predictions']['train']['probs'][-1]])
 
         cv_outputs['predictions']['test']['y_true'].append(y.loc[test_indicies])
         cv_outputs['predictions']['train']['y_true'].append(y.loc[train_indicies])
@@ -82,7 +92,7 @@ def classifaction_report_to_df(report):
         report_data.append(row)
     return pd.DataFrame.from_dict(report_data)
 
-def LR_model_sum(models, feature_names, coeff_var='coef_', prefix='fold', statsmodel=False):
+def model_sum(models, feature_names, coeff_var='coef_', prefix='fold', statsmodel=False, type='LR'):
 
     summary_dict = {'feature': feature_names}
 
@@ -99,7 +109,10 @@ def LR_model_sum(models, feature_names, coeff_var='coef_', prefix='fold', statsm
         else:
             coefficients = getattr(model, coeff_var)
             #print(coefficients)
-            summary_dict['%s_%s'%(prefix, name)] = [np.exp(coefficients[0][i]) for i in range(len(feature_names))]
+            if type=='LR':
+                summary_dict['%s_%s'%(prefix, name)] = [np.exp(coefficients[0][i]) for i in range(len(feature_names))]
+            else:
+                summary_dict['%s_%s'%(prefix, name)] = [coefficients[i] for i in range(len(feature_names))]
 
     if not statsmodel:
         df_coeff = pd.DataFrame.from_dict(summary_dict)
