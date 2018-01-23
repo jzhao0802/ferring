@@ -140,18 +140,20 @@ def flatten_cv_outputs(cv_output):
 
 def add_metrics_to_spreadsheet(spreadsheet, model_metrics):
     df_metrics = None
+    if not (isinstance(model_metrics, dict)): model_metrics = {'': model_metrics}
     for model,metrics in model_metrics.items():
+        model = '_%s'%model
         standard_metrics = {'metric': [], model: []}
         for metric,value in metrics.items():
             if 'curve' in metric:
                 df = pd.DataFrame.from_dict(value, orient='columns')
-                df.to_excel(spreadsheet, '%s_curve_%s' % (metric.split('_')[0], model), index=False)
+                df.to_excel(spreadsheet, '%s_curve%s' % (metric.split('_')[0], model), index=False)
             elif 'score' in metric:
                 standard_metrics['metric'].append(metric)
                 standard_metrics[model].append(value)
             else:
                 if not isinstance(value, pd.DataFrame): value = pd.DataFrame(value)
-                value.to_excel(spreadsheet, '%s_%s'%(metric.replace('classification', 'class').replace('confusion', 'conf'), model), index=False)
+                value.to_excel(spreadsheet, '%s%s'%(metric.replace('classification', 'class').replace('confusion', 'conf'), model), index=False)
 
         if df_metrics is None:
             df_metrics = pd.DataFrame.from_dict(standard_metrics)

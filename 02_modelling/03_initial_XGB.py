@@ -3,15 +3,16 @@ import plotly
 import pandas as pd
 import set_lib_paths
 import numpy as np
-from sklearn import metrics
 import plotly.plotly as py
 import plotly.graph_objs as go
 from xgboost import XGBClassifier
-from sklearn import tree, neighbors, ensemble, metrics, svm, preprocessing, linear_model, tree
 from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split, cross_validate
 from sklearn.metrics import precision_recall_curve
 from sklearn.pipeline import Pipeline
+from sklearn import tree, neighbors, ensemble, metrics, svm, preprocessing, linear_model, tree
+from sklearn import metrics
 import modelling
+import sklearn
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -48,7 +49,9 @@ def main(use_statsmodel=False):
     #df_cleaned, reference_dummies, removed_vars = dataset_cleaner.clean_data_for_modelling(df, gs_age_weeks=True, merge_race_dummies=['OTHER', 'ASIAN', 'BLACK_OR_AFRICAN_AMERICAN', 'HISPANIC'])
     df_cleaned = df_cleaned.reset_index(drop=True)
 
+    print (len(df_cleaned.keys()))
     print(list(df_cleaned.keys()))
+  #  sys.exit()
     print (removed_vars)
     print(reference_dummies)
 
@@ -59,6 +62,18 @@ def main(use_statsmodel=False):
     outer_kf = StratifiedKFold(n_splits=3, shuffle=True)
 
     label_col = 'LABEL'
+
+    model_types = {
+        'DT': tree.DecisionTreeClassifier,
+        'RF': ensemble.RandomForestClassifier,
+        'XGB': XGBClassifier
+    }
+
+    model_parameters = {
+        'DT': {'max_depth': 5},
+        'RF': {'n_estimators': 100, 'max_depth': 5},
+        'XGB': {'n_estimators': 100, 'max_depth': 5}
+    }
 
     model_features = {
            'ALL': list(df_cleaned.keys()),
@@ -71,50 +86,56 @@ def main(use_statsmodel=False):
     model_sum = partial(modelling.model_sum, statsmodel=use_statsmodel, type='XGB', coeff_var='feature_importances_')
     update_wrapper(model_sum, modelling.model_sum)
 
-    eval_metrics = [metrics.precision_recall_curve, metrics.roc_curve, metrics.roc_auc_score, metrics.accuracy_score,
-                    metrics.confusion_matrix, metrics.classification_report, model_sum]
-    parameters = {'C': 1e90}
+    eval_metrics = [sklearn.metrics.precision_recall_curve, sklearn.metrics.roc_curve, sklearn.metrics.roc_auc_score, sklearn.metrics.accuracy_score,
+                    sklearn.metrics.confusion_matrix, sklearn.metrics.classification_report, model_sum]
     grid_search_metric = 'ROC_AUC'
 
     y = df_cleaned.pop('LABEL')
 
     output_metrics = {}
-    pipeline_config = {"n_estimators": [1, 2, 3, 4, 5, 10, 20, 50],
-                       'max_depth': [1,2,3,4,5,6,7,8,9,10],
-                       'learning_rate': [0.001, 0.01, 0.1, 1]
-                       }
+    #pipeline_config = {"n_estimators": [1, 2, 3, 4, 5, 10, 20, 50, 100],
+    #                   'max_depth': [6,7,8,9,10],
+    #                   'learning_rate': [0.001, 0.01, 0.1, 1]
+    #                   }
+
+
 
     #clf_class = linear_model.LogisticRegression if not use_statsmodel else sm.Logit
     clf_class = XGBClassifier
 
-    for model_name,feature_set in model_features.items():
-        print(feature_set)
-        #for origin in model_origins:
-        modelling_data = df_cleaned.filter(regex='|'.join(feature_set))
+    for model_type, clf_class  in model_types.items():
+        for variable_set,feature_set in model_features.items():
+            model_name = '%s_%s'%(model_type, variable_set)
+            #print(feature_set)
+            print(len(feature_set))
+            #for origin in model_origins:
+            modelling_data = df_cleaned.filter(regex='|'.join(feature_set))
 
-        inner_kf = StratifiedKFold(n_splits=5, shuffle=True)
+            inner_kf = StratifiedKFold(n_splits=5, shuffle=True)
 
-        gs = GridSearchCV(
-            estimator=clf_class(),
-            param_grid=pipeline_config,
-            scoring='roc_auc',
-            cv=inner_kf,
-            n_jobs=10
-        )
-        cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, parameters, flatten=True, statsmodel=use_statsmodel, grid_search=gs)
+            #gs = GridSearchCV(
+            #stimator=clf_class(),
+            #param_grid=pipeline_config,
+            #scoring='roc_auc',
+            #cv=inner_kf,
+            #n_jobs=10
+            #)
+            #cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, parameters, flatten=True, statsmodel=use_statsmodel, grid_search=gs)
+            cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, model_parameters[model_type], flatten=True, statsmodel=use_statsmodel)
 
-        output_metrics[model_name] = modelling.calc_CV_metrics(**cv_outputs['predictions']['test'],
-                                                               metrics=eval_metrics, models=cv_outputs['models'],
-                                                               feature_names=list(modelling_data.columns.values))
+            output_metrics[model_name] = modelling.calc_CV_metrics(**cv_outputs['predictions']['test'],
+                                                                   metrics=eval_metrics, models=cv_outputs['models'],
+                                                                   feature_names=list(modelling_data.columns.values))
 
-        print (cv_outputs['best_params'])
+            #print (cv_outputs['best_params'])
 
-    print(output_metrics['OBRISK']['confusion_matrix'])
+    #print(output_metrics['OBRISK']['confusion_matrix'])
     suffix = '_statsmodel' if use_statsmodel else ''
-    spreadsheet = pd.ExcelWriter('%s/OBRISK_comparison%s.xlsx'%(results_dir, suffix))
-    modelling.add_metrics_to_spreadsheet(spreadsheet, output_metrics)
-    spreadsheet.save()
-    spreadsheet.close()
+    for model, metrics in output_metrics.items():
+        spreadsheet = pd.ExcelWriter('%s/%s_results_%s.xlsx'%(results_dir, model, suffix))
+        modelling.add_metrics_to_spreadsheet(spreadsheet, output_metrics)
+        spreadsheet.save()
+        spreadsheet.close()
 
     with open('%s/cv_outputs%s.pickle'%(results_dir, suffix), 'wb') as fd:
         pickle.dump([cv_outputs, output_metrics], fd)

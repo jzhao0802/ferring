@@ -41,13 +41,22 @@ class ConcomitantMedicationParser(MedicalHistoryParser):
         self.map_terms(df, diagnosis_col)
         df = self._mapper.filter_terms(df, diagnosis_col)
         df[diagnosis_col] = df[diagnosis_col].str.upper().str.replace(' ', '_')
+        df['CMTRT'] = df['CMTRT'].str.upper().str.replace(' ', '_')
         df_counts = self.aggregate_counts(df, diagnosis_col)
         df_dates = self.aggregate_dates(df, diagnosis_col, 'CMSTDTC')
+        df_medication_counts = self.aggregate_counts(df, 'CMTRT')
+
+
 
 
         #For now ignore medications...
 
-        return pd.merge(df_counts, df_dates, on=self._primary_key, how='outer')
+        return pd.merge(
+            pd.merge(df_counts, df_dates, on=self._primary_key, how='outer'),
+            df_medication_counts,
+            on=self._primary_key,
+            how='outer'
+        )
 
     def _process_table(self, raw_df, processed_df, extra_tables={}):
         return self.extract_cm_events(processed_df, extra_tables['ex'])

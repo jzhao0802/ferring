@@ -68,7 +68,7 @@ def main(use_statsmodel=False):
 
 
     LR_model_sum = partial(modelling.model_sum, statsmodel=use_statsmodel)
-    update_wrapper(LR_model_sum, modelling.LR_model_sum)
+    update_wrapper(LR_model_sum, modelling.model_sum)
 
     eval_metrics = [metrics.precision_recall_curve, metrics.roc_curve, metrics.roc_auc_score, metrics.accuracy_score,
                     metrics.confusion_matrix, metrics.classification_report, LR_model_sum]
