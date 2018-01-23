@@ -45,6 +45,15 @@ def main(data_dir):
     df = df.filter(regex='(?=^((?!MHTERM).)*$)').filter(regex='(?=^((?!CMINDC).)*$)')
     df = pd.DataFrame.merge(df, df_combined_counts, how='outer')
 
+    #Convert medications columns to flags
+    df_cmtrt = df.filter(regex='^CMTRT|USUBJID').set_index(['USUBJID'])
+    df_cmtrt[df_cmtrt>0] = 1
+    df_cmtrt[df_cmtrt.isnull()] = 0
+    df_cmtrt.columns = df_cmtrt.columns.map(lambda x: x.replace('_COUNT', '_FLAG'))
+    df = df.filter(regex='(?=^((?!CMTRT).)*$)')
+    df = pd.DataFrame.merge(df, df_cmtrt.reset_index(), how='outer', on='USUBJID')
+
+
     prevalences = (df.filter(regex="^MHTERM").filter(regex='COUNT$') > 0).sum().sort_values(ascending=False).reset_index()
     prevalences = prevalences.reset_index().rename(columns={0: 'Count', 'index': 'Term'})
     prevalences['Term'] = prevalences['Term'].str.replace('MHTERM_', '').str.replace('_COUNT', '')
