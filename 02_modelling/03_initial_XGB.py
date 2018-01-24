@@ -28,12 +28,13 @@ np.random.seed(__SEED__)
 random.seed(__SEED__)
 
 
-def main(use_statsmodel=False):
+def main(use_statsmodel=False, grid_search=False, grid_search_metric='ROC_AUC'):
     dataset_cleaner = modelling.ModellingDatasetCleaner()
 
     #Load data
     data_dir = 'F:/Projects/Ferring/data/pre_modelling/'
     results_dir = 'F:/Projects/Ferring/results/modelling/03_initial_XGB/'
+    if grid_search: results_dir+='grid_search/'
     df = pd.DataFrame.from_csv(os.path.join('%s/merged_data/PROCESSED_FLATFILE.csv' % (data_dir)))
 
     #delivery_dict = {'CESAREAN SECTION': 0, 'VAGINAL': 1}
@@ -88,21 +89,31 @@ def main(use_statsmodel=False):
 
     eval_metrics = [sklearn.metrics.precision_recall_curve, sklearn.metrics.roc_curve, sklearn.metrics.roc_auc_score, sklearn.metrics.accuracy_score,
                     sklearn.metrics.confusion_matrix, sklearn.metrics.classification_report, model_sum]
-    grid_search_metric = 'ROC_AUC'
 
     y = df_cleaned.pop('LABEL')
 
     output_metrics = {}
-    #pipeline_config = {"n_estimators": [1, 2, 3, 4, 5, 10, 20, 50, 100],
-    #                   'max_depth': [6,7,8,9,10],
+    pipeline_configs = {
+
+        'DT':         {'max_depth': [3,4,5,6,7,8,9,10]},
+        'RF':        {"n_estimators": [20, 30, 40, 50, 70, 100],
+                       'max_depth': [3,4,5,6,7,8,9,10],
+                        'n_jobs': [10]
     #                   'learning_rate': [0.001, 0.01, 0.1, 1]
-    #                   }
+                    },
+        'XGB':     {"n_estimators": [20, 30, 40, 50, 70, 100],
+                       'max_depth': [3,4,5,6,7,8,9,10],
+                    'n_jobs': [10]
+    #                   'learning_rate': [0.001, 0.01, 0.1, 1]
+                },
+
+    }
 
 
 
     #clf_class = linear_model.LogisticRegression if not use_statsmodel else sm.Logit
     clf_class = XGBClassifier
-
+    best_params = {}
     for model_type, clf_class  in model_types.items():
         for variable_set,feature_set in model_features.items():
             model_name = '%s_%s'%(model_type, variable_set)
@@ -111,23 +122,25 @@ def main(use_statsmodel=False):
             #for origin in model_origins:
             modelling_data = df_cleaned.filter(regex='|'.join(feature_set))
 
-            inner_kf = StratifiedKFold(n_splits=5, shuffle=True)
+            if grid_search:
+                inner_kf = StratifiedKFold(n_splits=5, shuffle=True)
 
-            #gs = GridSearchCV(
-            #stimator=clf_class(),
-            #param_grid=pipeline_config,
-            #scoring='roc_auc',
-            #cv=inner_kf,
-            #n_jobs=10
-            #)
-            #cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, parameters, flatten=True, statsmodel=use_statsmodel, grid_search=gs)
-            cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, model_parameters[model_type], flatten=True, statsmodel=use_statsmodel)
+                gs = GridSearchCV(
+                    estimator=clf_class(),
+                    param_grid=pipeline_configs[model_type],
+                    scoring='roc_auc',
+                    cv=inner_kf,
+                    n_jobs=10
+                )
+                cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, model_parameters[model_type], flatten=True, statsmodel=use_statsmodel, grid_search=gs)
+                best_params[model_name] = cv_outputs['best_params']
+            else:
+                cv_outputs = modelling.run_CV(modelling_data, y, clf_class, outer_kf, model_parameters[model_type], flatten=True, statsmodel=use_statsmodel)
 
             output_metrics[model_name] = modelling.calc_CV_metrics(**cv_outputs['predictions']['test'],
                                                                    metrics=eval_metrics, models=cv_outputs['models'],
                                                                    feature_names=list(modelling_data.columns.values))
 
-            #print (cv_outputs['best_params'])
 
     #print(output_metrics['OBRISK']['confusion_matrix'])
     suffix = '_statsmodel' if use_statsmodel else ''
@@ -150,8 +163,9 @@ def main(use_statsmodel=False):
         plt.ylabel('True Positive Rate')
         plt.savefig('%s/%s_ROC_curve.svg'%(results_dir, model), format='svg')
 
-
+    print (best_params)
     plt.show()
 if __name__ == '__main__':
     use_statsmodel = '--statsmodel' in sys.argv
-    main(use_statsmodel=use_statsmodel)
+    grid_search = '--gridSearch' in sys.argv
+    main(use_statsmodel=use_statsmodel, grid_search=grid_search)

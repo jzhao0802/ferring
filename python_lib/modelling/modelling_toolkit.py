@@ -15,6 +15,30 @@ def init_pred_dict():
     }
 
 
+def evaluate_multiple_classifiers(X, y, models, features, eval_metrics, use_statsmodel):
+    outputs = {}
+    for model_type, model_spec in models.items():
+        for feature_set_name, feature_set in features.items():
+
+            model_name = '%s_%s' % (model_type, feature_set_name)
+
+            X_filtered = X.filter(regex='|'.join(feature_set))
+
+            outputs[model_name] = {}
+            if 'grid_search' in model_spec:
+                outputs[model_name]['cv_outputs'] = run_CV(X_filtered, y, model_spec['clf_class'], model_spec['cv'],
+                                                           model_spec['parameters'], flatten=True, statsmodel=use_statsmodel,
+                                                           grid_search=model_spec['grid_search'])
+            else:
+                outputs[model_name]['cv_outputs'] = run_CV(X_filtered, y, model_spec['clf_class'], model_spec['cv'], model_spec['parameters'],
+                                          flatten=True, statsmodel=use_statsmodel)
+
+            outputs[model_name]['metrics'] = calc_CV_metrics(**outputs[model_name]['cv_outputs']['predictions']['test'],
+                                                                   metrics=eval_metrics, models=outputs[model_name]['cv_outputs']['models'],
+                                                                   feature_names=list(X_filtered.columns.values))
+
+    return outputs
+
 def run_CV(X, y, clf_class, cv_method, params={}, metrics=[], statsmodel=False, flatten=False, return_train_preds=False, grid_search=None):
     #CV_splits = kf.split(df_cleaned, label)
     #Note - if inner_cv_method given, assume this is a nested CV grid search...

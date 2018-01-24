@@ -13,7 +13,7 @@ class ModellingDatasetCleaner(object):
             '^TIME_DELTA_EX_START_OXYTOCIN_ADMIN$', '^TIME_DELTA_EX_START_ONSET_LABOUR$', '^STUDY_CODE$', '^SUBJID$',
             '^MODE_OF_DELIVERY$', '^OXYTOCIN_ADMINISTERED$', '^OXYTOCIN_ADMINISTRATION_TIME$', '^OXYTOCIN_DOSAGE$',
             '^RACE$', '^ACTIVE_LABOUR_TIME$', '^COUNTRY$', '^RACE_RAW$', '^RACE_PROCESSED$', '^EX_START_TIME$', '^APGAR.*', '^X1.*',
-            '^Unnamed.*', '^USUBJID$', '^CMTRT'
+            '^Unnamed.*', '^USUBJID$', '^CMTRT'#, '^HEIGHT$', '^WEIGHT$'
         ]
 
         self._dummy_var_prefixes = [
